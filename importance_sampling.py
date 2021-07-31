@@ -1,5 +1,6 @@
 import numpy as np
 import scipy
+from scipy.stats import invgamma, gamma
 
 class importance :
 
@@ -28,7 +29,7 @@ class importance :
         Cmean = scipy.linalg.solve_triangular(C, X.T.dot(Y), lower = True)
         if not self.sig2_known :
             Yz = Y.T.dot(Y) - Cmean.T.dot(Cmean)
-            a = self.ksig2 + 0.5*(n-p) if self.bridge else self.ksig2+0.5*n
+            a = self.ksig2 + 0.5*(self.n-self.p) if self.bridge else self.ksig2+0.5*self.n
             self.sig2 = invgamma.rvs(a = a, scale = self.thetasig2+0.5*Yz, size = self.N)
         self.beta = np.empty((self.N, self.p))
         mean = scipy.linalg.solve_triangular(C.T, Cmean, lower = False)
@@ -37,11 +38,11 @@ class importance :
             Cvar = scipy.linalg.solve_triangular(C.T, z, lower = False)
             self.beta[i, :] = (mean+np.sqrt(self.sig2[i])*Cvar)
         if not self.lamb_known :
-            self.lamb = np.empty(self.N)
-            b_ = 1 if self.bridge else 1/self.sig2  
+            self.lamb = np.empty(self.N)  
             for i in range(self.N): 
+                b_ = 1 if self.bridge else 1/np.sqrt(self.sig2[i])
                 self.lamb[i] = gamma.rvs(a = self.klambda + self.p/self.alpha,
-                        scale = 1/(self.thetalambda+b_[i]*np.sum(np.abs(beta[i, :])**self.alpha)), size = 1)
+                        scale = 1/(self.thetalambda+b_*np.sum(np.abs(self.beta[i, :])**self.alpha)), size = 1)
             self.tau = self.lamb**(-1/self.alpha)
         return(self)
 
@@ -50,7 +51,7 @@ class importance :
         lw = np.empty(self.N)
         for i in range(self.N):
             zi = np.abs(self.beta[i, :])
-            bi_ = 1 if self.bridge else self.sig2[i]
+            bi_ = 1 if self.bridge else np.sqrt(self.sig2[i])
             if self.lamb_known :
                 lw[i] = -self.lamb * np.sum(zi**self.alpha)/bi_ + self.nugget * np.linalg.norm(self.beta[i, :], ord = 2)/self.sig2[i]
             else :
