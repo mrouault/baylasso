@@ -75,7 +75,7 @@ class gibbslasso :
         beta = self.beta[i, :]
         tau2inv = self.tau2inv[i, :]
         beta_Dtau = sum([beta[j]**2 * tau2inv[j] for j in range(self.p)])
-        v = np.linalg.norm(self.ytemp - self.X_.dot(np.array(beta)), ord = 2)
+        v = np.linalg.norm(self.ytemp - self.X_.dot(np.array(beta)), ord = 2)**2
         scale = self.thetasig2 + 0.5*(beta_Dtau + v)
         return invgamma.rvs(a = a, scale = scale, size = 1)
 
