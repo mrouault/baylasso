@@ -1,11 +1,10 @@
 import numpy as np
 import scipy
 from scipy.stats import invgamma, gamma
-from sklearn.model_selection import train_test_split, GridSearchCV
 
 class importance :
 
-    def __init__(self, N = 1000, alpha = 1, nugget = 0, sig2 = None, lamb  = None, 
+    def __init__(self, N = 1000, alpha = 1, nugget = None, sig2 = None, lamb  = None, 
             ksig2 = 1, thetasig2 = 1, klambda = 2, thetalambda = 2, bridge = False):
 
         self.N = N
@@ -26,6 +25,13 @@ class importance :
         self.X_ = X
         self.y_ = Y
         self.n, self.p = X.shape
+        if self.nugget == None and np.all(np.linalg.eigvals(X.T.dot(X)) > 0):
+            self.nugget = 0
+        elif self.nugget == None :
+            nugmin = -5
+            while not np.all(np.linalg.eigvals(X.T.dot(X)+10**nugmin *np.eye(self.p)) > 0):
+                nugmin +=1
+            self.nugget = 10**nugmin
         C = np.linalg.cholesky(X.T.dot(X)+self.nugget*np.eye(self.p))
         Cmean = scipy.linalg.solve_triangular(C, X.T.dot(Y), lower = True)
         if not self.sig2_known :
@@ -63,46 +69,3 @@ class importance :
         self.ess = np.sum(self.w)**2 / np.sum(self.w**2)
         return(self)
 
-    def fit(self, X, Y):
-
-        self.mv_gaussian(X, Y).weight()
-        mapb = np.empty(self.p)
-        for i in range(self.p):
-            mapb[i] = np.average(self.beta[:, i], weights = self.w)
-        self.coef_ = mapb
-        return(self)
-
-    def predict(self, X):
-
-        return(X.dot(self.coef_))
-
-    def get_params(self, deep = True):
-
-        return{'N' : self.N, 'alpha' : self.alpha, 'nugget' : self.nugget, 'sig2' : self.sig2, 
-                'lamb' : self.lamb, 'ksig2' : self.ksig2, 'thetasig2' : self.thetasig2, 
-                'klambda' : self.klambda, 'thetalambda' : self.thetalambda,
-                'bridge' : self.bridge}
-
-    def set_params(self, **parameters):
-
-        for parameter, value in parameters.items():
-            setattr(self, parameter, value)
-        return self
-
-    def cvnugget(self, X, Y):
-
-        self.X_ = X
-        self.y_ = Y
-        self.n, self.p = X.shape 
-        X_train, X_test, Y_train, Y_test = train_test_split(self.X_, self.y_, test_size = 0.3, random_state =0)
-        nugmin = -5
-        if np.all(np.linalg.eigvals(self.X_.T.dot(self.X_)) > 0):
-            print("Matrix is positive definite, nugget can be set to 0")
-        else :
-            while not np.all(np.linalg.eigvals(self.X_.T.dot(self.X_) + (10**(nugmin))*np.eye(self.p))> 0):
-                nugmin+=1
-        parameters = {'nugget' : [10**nug for nug in range(nugmin, nugmin + 7)]}
-        cv = GridSearchCV(self, parameters, scoring = "neg_mean_squared_error")
-        cv.fit(X_train, Y_train)
-        self.nugget = cv.best_params_['nugget']
-        return self
