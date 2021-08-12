@@ -61,9 +61,9 @@ class importance :
             sig_ = self.sig2 if self.sig2_known else self.sig2[i]
             bi_ = 1 if self.bridge else np.sqrt(sig_)
             if self.lamb_known :
-                lw[i] = -self.lamb * np.sum(zi**self.alpha)/bi_ + self.nugget * np.linalg.norm(self.beta[i, :], ord = 2)/sig_
+                lw[i] = -self.lamb * np.sum(zi**self.alpha)/bi_ + 0.5*self.nugget * np.linalg.norm(self.beta[i, :], ord = 2)/sig_
             else :
-                lw[i] = -(self.p/self.alpha+self.klambda)*np.log(self.thetalambda+np.sum(zi)/bi_) + self.nugget*np.linalg.norm(self.beta[i, :], ord = 2)/sig_
+                lw[i] = -(self.p/self.alpha+self.klambda)*np.log(self.thetalambda+np.sum(zi)/bi_) + 0.5*self.nugget*np.linalg.norm(self.beta[i, :], ord = 2)/sig_
         self.w = np.exp(lw - np.max(lw))
         self.w /= np.sum(self.w)
         self.ess = np.sum(self.w)**2 / np.sum(self.w**2)
