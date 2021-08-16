@@ -28,7 +28,7 @@ class importance :
         if self.nugget == None and np.all(np.linalg.eigvals(X.T.dot(X)) > 0):
             self.nugget = 0
         elif self.nugget == None :
-            nugmin = -5
+            nugmin = -4
             while not np.all(np.linalg.eigvals(X.T.dot(X)+10**nugmin *np.eye(self.p)) > 0):
                 nugmin +=1
             self.nugget = 10**nugmin
