@@ -47,8 +47,10 @@ sns.histplot(x = betanorm.beta[:, 0], weights = betanorm.w, stat = "density",
         bins = 30, ax = ax, color = "tab:blue")
 figl, axl = plt.subplots()
 sns.histplot(x = betalap[:, 0], weights = wlap, stat = "density",
-        bins = 100, ax = axl, color = "tab:orange")
+        bins = 1000, ax = axl, color = "tab:orange")
 
+print("ESS for Gaussian proposal : ", betanorm.ess)
+print("ESS for Laplace proposal : ", esslap)
 fig.show()
 figl.show()
 
