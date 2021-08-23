@@ -11,7 +11,8 @@ class TemperedImportance :
 
     def __init__(self, X, Y, alpha = 1, nugget = None, sig2 = None,
             lamb = None, ksig2 = 1, thetasig2 = 1, bridge = False,
-            klambda = 2, thetalambda = 2, step = 1e-2, plot = False) :
+            klambda = 2, thetalambda = 2, step = 1e-2, plot = False,
+            verbose = True) :
 
         self.X_ = X
         self.y_ = Y
@@ -24,14 +25,15 @@ class TemperedImportance :
         self.klambda = klambda
         self.thetalambda = thetalambda
         self.bridge = bridge
-        self.sig2_known = sig2 != None
+        self.sig2_known = sig2 is not None
         self.n, self.p = X.shape
         self.step = step
         self.plot = plot
+        self.verbose = verbose
 
-        if self.nugget == None and np.all(np.linalg.eigvals(X.T.dot(X)) > 0) :
+        if self.nugget is None and np.all(np.linalg.eigvals(X.T.dot(X)) > 0) :
             self.nugget = 0
-        elif self.nugget == None :
+        elif self.nugget is None :
             nugmin = -4
             while not np.all(np.linalg.eigvals(X.T.dot(X)+ 10**nugmin *np.eye(self.p)) > 0) :
                 nugmin += 1
@@ -66,8 +68,22 @@ class TemperedImportance :
         fk_tempering = LassoAdaptiveTempering(imp, len_chain = len_chain, wastefree = True, lambtemp = self.lamb,
                 klambda = self.klambda, thetalambda = self.thetalambda, step = self.step, plot = self.plot)
         self.temp_alg = particles.SMC(fk = fk_tempering, N = int(size/len_chain), ESSrmin = 1.,
-                verbose = True)
+                verbose = self.verbose)
         self.temp_alg.run()
+        if self.lamb is None :
+            self.lamb = self.temp_alg.fk.lamb
+        self.W = self.temp_alg.wgts.W
+        theta = self.temp_alg.X.theta
+        if not self.sig2_known :
+            self.v = np.empty(size)
+        self.beta = np.empty((size, self.p))
+        for i in range(size):
+            if not self.sig2_known :
+                s, b = theta[i]
+                self.v[i] = np.exp(s)
+                self.beta[i, :] = b
+            else :
+                self.beta[i, :] = theta[i]
 
         return self
 
@@ -84,15 +100,14 @@ class importance_model(ssp.TemperingBridge) :
         self.bridge = bridge
         self.nugget = nugget
         self.sig2 = sig2
-        self.sig2_known = sig2 != None
+        self.sig2_known = sig2 is not None
 
     def logtarget(self, theta) :
         logt = np.empty(theta['beta'].shape[0])
         for i in range(theta['beta'].shape[0]) :
             sig_ = self.sig2 if self.sig2_known else np.exp(theta['logsig2'][i])
             b_ = 1 if self.bridge else np.sqrt(sig_)
-            logt[i] = (-np.sum(np.abs(theta['beta'][i, :])**self.alpha)/b_ +
-                    0.5*self.nugget*np.linalg.norm(theta['beta'][i, :], ord = 2)/sig_)
+            logt[i] = (-np.sum(np.abs(theta['beta'][i, :])**self.alpha)/b_)
         logt += self.prior.logpdf(theta)
         return logt
 
@@ -197,4 +212,23 @@ class LassoAdaptiveTempering(ssp.AdaptiveTempering) :
             #left endpoint is > 0, since f(0.) = nan if any likelihood = -inf
             new_epn = epn + delta
         x.shared['exponents'].append(new_epn)
-        return self.logG_tempering(x, delta)
+        return self.logG_tempering(x, delta, wnugget = True) if t == 1 else self.logG_tempering(x, delta)
+
+    def logG_tempering(self, x, delta, wnugget = False):
+    
+        dl = delta * x.llik
+        if wnugget :
+            nuglik = np.empty(x.theta.size)
+            for i in range(x.theta.size) :
+                if not self.model.sig2_known :
+                    logs, b = x.theta[i]
+                    s = np.exp(logs)
+                else :
+                    s = self.model.sig2
+                    b = x.theta[i]
+                nuglik[i] = 0.5*self.model.nugget/s *np.linalg.norm(b, ord = 2)
+            dl += nuglik
+        x.lpost += dl
+        self.update_path_sampling_est(x, delta)
+        return dl
+

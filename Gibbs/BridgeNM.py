@@ -1,7 +1,7 @@
 import numpy as np
 import scipy
 from scipy.stats import gamma, invgamma
-import TiltedStable
+import Gibbs.TiltedStable as TiltedStable
 
 class bridgenm :
 
