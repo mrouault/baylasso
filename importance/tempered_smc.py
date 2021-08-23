@@ -11,7 +11,8 @@ class TemperedImportance :
 
     def __init__(self, X, Y, alpha = 1, nugget = None, sig2 = None,
             lamb = None, ksig2 = 1, thetasig2 = 1, bridge = False,
-            klambda = 2, thetalambda = 2, step = 1e-2, plot = False) :
+            klambda = 2, thetalambda = 2, step = 1e-2, plot = False,
+            verbose = True) :
 
         self.X_ = X
         self.y_ = Y
@@ -24,14 +25,15 @@ class TemperedImportance :
         self.klambda = klambda
         self.thetalambda = thetalambda
         self.bridge = bridge
-        self.sig2_known = sig2 != None
+        self.sig2_known = sig2 is not None
         self.n, self.p = X.shape
         self.step = step
         self.plot = plot
+        self.verbose = verbose
 
-        if self.nugget == None and np.all(np.linalg.eigvals(X.T.dot(X)) > 0) :
+        if self.nugget is None and np.all(np.linalg.eigvals(X.T.dot(X)) > 0) :
             self.nugget = 0
-        elif self.nugget == None :
+        elif self.nugget is None :
             nugmin = -4
             while not np.all(np.linalg.eigvals(X.T.dot(X)+ 10**nugmin *np.eye(self.p)) > 0) :
                 nugmin += 1
@@ -66,8 +68,10 @@ class TemperedImportance :
         fk_tempering = LassoAdaptiveTempering(imp, len_chain = len_chain, wastefree = True, lambtemp = self.lamb,
                 klambda = self.klambda, thetalambda = self.thetalambda, step = self.step, plot = self.plot)
         self.temp_alg = particles.SMC(fk = fk_tempering, N = int(size/len_chain), ESSrmin = 1.,
-                verbose = True)
+                verbose = self.verbose)
         self.temp_alg.run()
+        if self.lamb is None :
+            self.lamb = self.temp_alg.fk.lamb
         self.W = self.temp_alg.wgts.W
         theta = self.temp_alg.X.theta
         if not self.sig2_known :
