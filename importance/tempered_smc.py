@@ -75,9 +75,9 @@ class TemperedImportance :
         self.W = self.temp_alg.wgts.W
         theta = self.temp_alg.X.theta
         if not self.sig2_known :
-            self.v = np.empty(size)
-        self.beta = np.empty((size, self.p))
-        for i in range(size):
+            self.v = np.empty(theta.size)
+        self.beta = np.empty((theta.size, self.p))
+        for i in range(theta.size):
             if not self.sig2_known :
                 s, b = theta[i]
                 self.v[i] = np.exp(s)

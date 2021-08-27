@@ -59,9 +59,22 @@ def zolotarev_a(x, alpha):
 
     return (np.sin(alpha*x)**alpha *np.sin((1-alpha)*x)**(1-alpha) /np.sin(x))**(1/(1-alpha))
 
+def sincmm(x): 
+    #instead of np.sinc, to ensure numeric stability and positive values,
+    #see https://github.com/jwindle/BayesBridge/blob/master/Code/C/retstable.cpp
+    ax = abs(x)
+    if ax < 0.006 :
+        if x == 0 :
+            return 1
+        if ax < 2e-4 :
+            return 1-x**2 /6
+        else :
+            return 1- x**2 /6 *(1-x**2 /20)
+    return np.sin(x)/x
+
 def zolotarev_b(x, alpha):
 
-    return (np.sinc(x)/(np.sinc(alpha*x)**alpha * np.sinc((1-alpha)*x)**(1-alpha)))
+    return (sincmm(x)/(sincmm(alpha*x)**alpha * sincmm((1-alpha)*x)**(1-alpha)))
 
 def gen_u(gam, w1, w2, w3):
 
