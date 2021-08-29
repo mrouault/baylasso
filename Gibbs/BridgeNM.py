@@ -37,10 +37,7 @@ class bridgenm :
         self.ytemp = self.y_
         self.Vinv = self.X_.T.dot(self.X_)
         self.xy = self.X_.T.dot(self.ytemp)
-        C = np.linalg.cholesky(self.Vinv)
-        Cmean = scipy.linalg.solve_triangular(C, self.X_.T.dot(self.y_), lower = True)
-        mu = scipy.linalg.solve_triangular(C.T, Cmean , lower = False)
-        self.beta[0, :] = mu +  np.random.randn(self.p)
+        self.beta[0, :] =  np.random.randn(self.p)
 
         for i in range(1, N):
             self.lamb[i, :] = self.update_lamb(i)

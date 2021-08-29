@@ -35,14 +35,10 @@ cpug = time.time()-cpug0
 imp.N = int(ngibbs * cpug/cpuimp)
 
 for i in range(nvar):
-    time0imp = time.time()
     imp.mv_gaussian(X, Y).weight()
-    time.time()-time0imp
     for j in range(p):
         impest[i, j] = np.average(imp.beta[:, j], weights = imp.w)
-    time0g = time.time()
     gibbs.run(ngibbs)
-    time.time()-time0g
     for j in range(p):
         gibbsest[i, j]  = np.mean(gibbs.beta[:, j])
 

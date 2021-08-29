@@ -185,10 +185,11 @@ class LassoAdaptiveTempering(ssp.AdaptiveTempering) :
                 essp = [ess(nu) for nu in nup]
                 sns.set_theme()
                 fig, ax = plt.subplots()
-                ax.plot(nup, rs.exp_and_normalise(np.log(self.step) + lpnup), color = "tab:blue")
+                ax.plot(nup, rs.exp_and_normalise(np.log(self.step) + lpnup), color = "tab:blue", label = "p(lamb | Y)")
                 axess = ax.twinx()
-                axess.plot(nup, np.array(essp)/x.N, color = "tab:orange")
-                plt.show()
+                axess.plot(nup, np.array(essp)/x.N, color = "tab:orange", label = "ESS")
+                fig.legend(loc = "upper right")
+                fig.show()
             return numax
 
 
