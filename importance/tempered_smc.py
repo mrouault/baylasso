@@ -202,24 +202,12 @@ class LassoAdaptiveTempering(ssp.AdaptiveTempering) :
     def logG(self, t, xp, x) :
         if t == 0 :
             self.lamb = self.lambc(x)
+            self.nugget_reweight = False
+        nuglik = np.array([0 for k in range(x.theta.size)])
         ESSmin = self.ESSrmin * x.N
-        f = lambda e : rs.essl(e * x.llik) - ESSmin
-        epn = x.shared['exponents'][-1]
-        if f(self.lamb - epn) > 0 : #we're done (last iteration)
-            delta = self.lamb - epn
-            new_epn = self.lamb
-        else : 
-            delta = scipy.optimize.brentq(f, 1e-12, self.lamb - epn) #secant search
-            #left endpoint is > 0, since f(0.) = nan if any likelihood = -inf
-            new_epn = epn + delta
-        x.shared['exponents'].append(new_epn)
-        return self.logG_tempering(x, delta, wnugget = True) if t == 1 else self.logG_tempering(x, delta)
-
-    def logG_tempering(self, x, delta, wnugget = False):
-    
-        dl = delta * x.llik
-        if wnugget :
-            nuglik = np.empty(x.theta.size)
+        f = lambda e : rs.essl(e*x.llik) - ESSmin
+        if self.model.nugget != 0 and not self.nugget_reweight :
+            nuglik0 = np.empty(x.theta.size)
             for i in range(x.theta.size) :
                 if not self.model.sig2_known :
                     logs, b = x.theta[i]
@@ -227,8 +215,32 @@ class LassoAdaptiveTempering(ssp.AdaptiveTempering) :
                 else :
                     s = self.model.sig2
                     b = x.theta[i]
-                nuglik[i] = 0.5*self.model.nugget/s *np.linalg.norm(b, ord = 2)
-            dl += nuglik
+                nuglik0[i] = 0.5*self.model.nugget/s *np.sum(b**2)
+            g = lambda e : rs.essl(e * x.llik+nuglik0) - ESSmin
+            if g(1e-12) > 0 :
+                print("Nugget correction at iteration :", t)
+                f = g
+                self.nugget_reweight = True
+                nuglik = nuglik0
+            else :
+                nuglik = np.array([0 for k in range(x.theta.size)])
+        epn = x.shared['exponents'][-1]
+        if f(self.lamb - epn) > 0 : #we're done (last iteration)
+            delta = self.lamb - epn
+            new_epn = self.lamb
+            if self.model.nugget != 0 and not self.nugget_reweight :
+                nuglik = nuglik0
+
+        else : 
+            delta = scipy.optimize.brentq(f, 1e-12, self.lamb - epn) #secant search
+            #left endpoint is > 0, since f(0.) = nan if any likelihood = -inf
+            new_epn = epn + delta
+        x.shared['exponents'].append(new_epn)
+        return self.logG_tempering(x, delta, nuglik)
+
+    def logG_tempering(self, x, delta, nuglik):
+    
+        dl = delta * x.llik + nuglik
         x.lpost += dl
         self.update_path_sampling_est(x, delta)
         return dl
