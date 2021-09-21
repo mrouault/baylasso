@@ -36,6 +36,8 @@ class gibbslasso :
         lamb_ = self.lamb if self.lamb_known else self.lamb[0]
         tau2 = gamma.rvs(size = self.p, a = 1, scale = 2/lamb_**2)
         self.tau2inv[0] = 1/tau2
+        self.Vinv = self.X_.T.dot(self.X_)
+        self.xy = self.X_.T.dot(self.ytemp)
 
         for i in range(1, self.N):
             self.beta[i, :] = self.update_beta(i)
@@ -53,8 +55,8 @@ class gibbslasso :
     def update_beta(self, i):
     
         D_tau2inv = np.diag(self.tau2inv[i-1, :])
-        L = np.linalg.cholesky(self.X_.T.dot(self.X_) + D_tau2inv)
-        Lc = scipy.linalg.solve_triangular(L, self.X_.T.dot(self.ytemp), lower = True)
+        L = np.linalg.cholesky(self.Vinv + D_tau2inv)
+        Lc = scipy.linalg.solve_triangular(L, self.xy, lower = True)
         mean = scipy.linalg.solve_triangular(L.T, Lc, lower = False)
         z = np.random.randn(self.p)
         Lvar = scipy.linalg.solve_triangular(L.T, z, lower = False)
@@ -91,4 +93,5 @@ class gibbslasso :
     
         sig_ = self.sig2 if self.sig2_known else self.sig2[i]
         ytemp = self.X_.dot(self.beta[i, :]) + np.sqrt(sig_)*np.random.randn(self.n)
+        self.xy = self.X_.T.dot(ytemp)
         return ytemp

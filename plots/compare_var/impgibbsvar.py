@@ -17,12 +17,12 @@ X = scaler.transform(X)
 Y = (Y-np.mean(Y))/np.std(Y)
 n, p = X.shape
 
-nvar = 1000
+nvar = 100
 lamb = 1
 imp = importance(N = 1000, lamb = lamb)
 gibbs = gibbslasso(X = X, Y = Y, lamb = lamb)
-impvar = np.empty(nvar)
-gibbsvar = np.empty(nvar)
+impest = np.empty((nvar, p))
+gibbsest = np.empty((nvar, p))
 
 ngibbs = 1000
 cpuimp0 = time.time()
@@ -35,15 +35,24 @@ cpug = time.time()-cpug0
 imp.N = int(ngibbs * cpug/cpuimp)
 
 for i in range(nvar):
-    time0imp = time.time()
     imp.mv_gaussian(X, Y).weight()
-    time.time()-time0imp
-    impvar[i] = np.median([np.average(imp.beta[:, j], weights = imp.w) for j in range(p)])
-    time0g = time.time()
+    for j in range(p):
+        impest[i, j] = np.average(imp.beta[:, j], weights = imp.w)
     gibbs.run(ngibbs)
-    time.time()-time0g
-    gibbsvar[i] = np.median([np.mean(gibbs.beta[:, j]) for j in range(p)])
+    for j in range(p):
+        gibbsest[i, j]  = np.mean(gibbs.beta[:, j])
 
-dat = pd.DataFrame({"method" : ['smc' if k < nvar else 'gibbs' for k in range(2*nvar)],
-    "E[beta | Y]" : list(impvar)+list(gibbsvar)})
-sns.boxplot(x = "method", y = "E[beta | Y]", data = da, showfliers = False)
+
+tempvar = np.array([np.var(impest[:, j]) for j in range(p)])
+gibbsvar = np.array([np.var(gibbsest[:, j]) for j in range(p)])
+
+fig, ax = plt.subplots()
+sns.boxplot(x = np.log10(gibbsvar/tempvar),ax = ax)
+fig.show()
+
+for j in range(p):
+    fig, ax = plt.subplots()
+    dat = pd.DataFrame({"method" : ['IS' if k < nvar else 'Gibbs' for k in range(2*nvar)],
+        "E[beta | Y]" : list(impest[:, j])+list(gibbsest[:, j])})
+    sns.boxplot(x = "method", y = "E[beta | Y]", data = dat, showfliers = False, ax = ax)
+    fig.show()

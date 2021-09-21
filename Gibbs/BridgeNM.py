@@ -36,10 +36,8 @@ class bridgenm :
         self.tau = self.nu**(-1/self.alpha) if self.nu_known else self.nu[0]**(-1/self.alpha)
         self.ytemp = self.y_
         self.Vinv = self.X_.T.dot(self.X_)
-        C = np.linalg.cholesky(self.Vinv)
-        Cmean = scipy.linalg.solve_triangular(C, self.X_.T.dot(self.y_), lower = True)
-        mu = scipy.linalg.solve_triangular(C.T, Cmean , lower = False)
-        self.beta[0, :] = mu + np.random.randn(self.p)
+        self.xy = self.X_.T.dot(self.ytemp)
+        self.beta[0, :] =  np.random.randn(self.p)
 
         for i in range(1, N):
             self.lamb[i, :] = self.update_lamb(i)
@@ -57,8 +55,8 @@ class bridgenm :
 
         L = np.diag(self.lamb[i, :])
         sig_ = self.sig2 if self.sig2_known else self.sig2[i-1]
-        C = np.linalg.cholesky(self.Vinv + 2*sig_/self.tau**2 * L)
-        Cmean = scipy.linalg.solve_triangular(C, self.X_.T.dot(self.ytemp), lower = True)
+        C = np.linalg.cholesky(self.Vinv + sig_/self.tau**2 * L)
+        Cmean = scipy.linalg.solve_triangular(C, self.xy, lower = True)
         mean = scipy.linalg.solve_triangular(C.T, Cmean, lower = False)
         z = np.random.randn(self.p)
         Cvar = scipy.linalg.solve_triangular(C.T, z, lower = False)
@@ -90,5 +88,6 @@ class bridgenm :
 
         sig_ = self.sig2 if self.sig2_known else self.sig2[i]
         ytemp = self.X_.dot(self.beta[i, :])+np.sqrt(sig_)*np.random.randn(self.n)
+        self.xy = self.X_.T.dot(ytemp)
         return ytemp
 
