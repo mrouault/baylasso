@@ -39,11 +39,11 @@ fig, ax = plt.subplots()
 figsig2, axsig2 = plt.subplots()
 
 ax.plot(lamb, ess)
-ax.set_xlabel("lambda")
+ax.set_xlabel(r"$\lambda$")
 ax.set_ylabel("ESS")
 
 axsig2.plot(lamb, esssig2)
-axsig2.set_xlabel("lambda")
+axsig2.set_xlabel(r"$\lambda$")
 axsig2.set_ylabel("ESS")
 
 fig.show()
