@@ -38,11 +38,11 @@ for k in range(len(lamb)):
 
 fig, ax = plt.subplots()
 
-ax.plot(lamb, ess1, label = "alpha = 0.5")
-ax.plot(lamb, ess2, label = "alpha = 1")
-ax.plot(lamb, ess3, label = "alpha = 1.5")
-ax.plot(lamb, ess4, label = "alpha = 2")
-ax.set_xlabel("lambda")
+ax.plot(lamb, ess1, label = r"$\alpha = 0.5$")
+ax.plot(lamb, ess2, label = r"$\alpha = 1$")
+ax.plot(lamb, ess3, label = r"$\alpha = 1.5$")
+ax.plot(lamb, ess4, label = r"$\alpha = 2$")
+ax.set_xlabel(r"$\lambda$")
 ax.set_ylabel("ESS")
 
 fig.legend(loc = "upper right")
